@@ -22,38 +22,167 @@ export default function Home() {
   const [speechSupported, setSpeechSupported] = useState(false);
   const videoRef = useRef(null);
   const recognitionRef = useRef(null);
+  
+  // Browser compatibility check
+  const [browserInfo, setBrowserInfo] = useState({
+    speech: false,
+    camera: false,
+    browser: ''
+  });
+  
+  // Question narration states
+  const [isNarrating, setIsNarrating] = useState(false);
+  const [speechSynthSupported, setSpeechSynthSupported] = useState(false);
+  
+  // Speech recognition enhancement states
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const [isListening, setIsListening] = useState(false);
+
+  // Check browser compatibility
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const userAgent = window.navigator.userAgent;
+      let browserName = 'Unknown';
+      
+      if (userAgent.indexOf('Chrome') > -1) browserName = 'Chrome';
+      else if (userAgent.indexOf('Firefox') > -1) browserName = 'Firefox';
+      else if (userAgent.indexOf('Safari') > -1) browserName = 'Safari';
+      else if (userAgent.indexOf('Edge') > -1) browserName = 'Edge';
+      
+      const hasSpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+      const hasCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+      const hasSpeechSynth = !!(window.speechSynthesis);
+      
+      setBrowserInfo({
+        speech: hasSpeech,
+        camera: hasCamera,
+        browser: browserName
+      });
+      
+      setSpeechSynthSupported(hasSpeechSynth);
+      
+      console.log('Browser compatibility:', { browserName, hasSpeech, hasCamera, hasSpeechSynth });
+    }
+  }, []);
 
   // Initialize speech recognition
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      console.log('Checking speech recognition support...');
+      
+      // Check for various speech recognition implementations
+      const SpeechRecognition = window.SpeechRecognition || 
+                               window.webkitSpeechRecognition || 
+                               window.mozSpeechRecognition || 
+                               window.msSpeechRecognition;
+      
       if (SpeechRecognition) {
+        console.log('Speech recognition supported!');
         setSpeechSupported(true);
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
-        recognitionRef.current.lang = 'en-US';
+        
+        try {
+          recognitionRef.current = new SpeechRecognition();
+          
+          // Enhanced configuration for better accuracy
+          recognitionRef.current.continuous = true;
+          recognitionRef.current.interimResults = true;
+          recognitionRef.current.lang = 'en-US';
+          recognitionRef.current.maxAlternatives = 3; // Get multiple alternatives
+          
+          // Adjust for better audio capture
+          if ('webkitSpeechRecognition' in window) {
+            // Chrome-specific optimizations
+            recognitionRef.current.serviceURI = 'wss://www.google.com/speech-api/v2/recognize';
+          }
 
-        recognitionRef.current.onresult = (event) => {
-          let finalTranscript = '';
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript;
+          recognitionRef.current.onresult = (event) => {
+            let finalTranscript = '';
+            let interimTranscript = '';
+            
+            // Process all results from the last processed index
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const result = event.results[i];
+              const transcript = result[0].transcript;
+              
+              if (result.isFinal) {
+                finalTranscript += transcript;
+                console.log('Final transcript:', transcript);
+              } else {
+                interimTranscript += transcript;
+                console.log('Interim transcript:', transcript);
+              }
             }
-          }
-          if (finalTranscript) {
-            setUserAnswer(prev => prev + ' ' + finalTranscript);
-          }
-        };
+            
+            // Update interim transcript for preview
+            setInterimTranscript(interimTranscript);
+            
+            // Update the answer with final transcript
+            if (finalTranscript) {
+              setUserAnswer(prev => {
+                const newValue = prev ? prev + ' ' + finalTranscript : finalTranscript;
+                console.log('Updated answer:', newValue);
+                return newValue.trim();
+              });
+              // Clear interim when we get final
+              setInterimTranscript('');
+            }
+          };
 
-        recognitionRef.current.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
-          setIsRecording(false);
-        };
+          recognitionRef.current.onerror = (event) => {
+            console.error('Speech recognition error:', event.error, event);
+            
+            // Handle different error types
+            if (event.error === 'not-allowed') {
+              alert('Microphone access was denied. Please allow microphone access and refresh the page.');
+            } else if (event.error === 'no-speech') {
+              console.log('No speech detected, continuing...');
+              // Don't stop recording for no-speech, just continue
+              return;
+            } else if (event.error === 'audio-capture') {
+              alert('No microphone was found. Please ensure your microphone is connected and try again.');
+            } else if (event.error === 'network') {
+              alert('Network error occurred. Please check your internet connection.');
+            } else if (event.error === 'aborted') {
+              console.log('Speech recognition was aborted');
+            } else {
+              console.log('Speech recognition error:', event.error);
+            }
+            
+            setIsRecording(false);
+          };
 
-        recognitionRef.current.onend = () => {
-          setIsRecording(false);
-        };
+          recognitionRef.current.onend = () => {
+            console.log('Speech recognition ended');
+            setIsRecording(false);
+          };
+
+          recognitionRef.current.onstart = () => {
+            console.log('Speech recognition started');
+            setIsRecording(true);
+            setIsListening(true);
+          };
+
+          recognitionRef.current.onspeechstart = () => {
+            console.log('Speech detected');
+            setIsListening(true);
+          };
+
+          recognitionRef.current.onspeechend = () => {
+            console.log('Speech ended');
+            setIsListening(false);
+          };
+
+          recognitionRef.current.onnomatch = () => {
+            console.log('No speech match found');
+          };
+          
+        } catch (error) {
+          console.error('Failed to initialize speech recognition:', error);
+          setSpeechSupported(false);
+        }
+      } else {
+        console.log('Speech recognition not supported in this browser');
+        setSpeechSupported(false);
       }
     }
   }, []);
@@ -61,41 +190,146 @@ export default function Home() {
   // Camera functions
   const enableCamera = async () => {
     try {
+      console.log('Requesting camera access...');
+      
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported in this browser');
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
+        video: { 
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        }, 
         audio: false 
       });
+      
+      console.log('Camera access granted, setting up video...');
       setCameraStream(stream);
       setCameraEnabled(true);
+      
+      // Set up video element
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // Ensure video plays
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play().catch(error => {
+            console.error('Error playing video:', error);
+          });
+        };
       }
+      
+      console.log('Camera setup complete');
+      
     } catch (error) {
       console.error('Error accessing camera:', error);
-      alert('Could not access camera. Please check permissions.');
+      setCameraEnabled(false);
+      
+      if (error.name === 'NotAllowedError') {
+        alert('Camera access was denied. Please allow camera access and try again.');
+      } else if (error.name === 'NotFoundError') {
+        alert('No camera found on this device.');
+      } else if (error.name === 'NotReadableError') {
+        alert('Camera is already in use by another application.');
+      } else {
+        alert('Could not access camera: ' + error.message);
+      }
     }
   };
 
   const disableCamera = () => {
+    console.log('Disabling camera...');
     if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream.getTracks().forEach(track => {
+        track.stop();
+        console.log('Camera track stopped:', track.kind);
+      });
       setCameraStream(null);
     }
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    
     setCameraEnabled(false);
+    console.log('Camera disabled');
   };
 
   // Speech recognition functions
   const startRecording = () => {
     if (recognitionRef.current && speechSupported) {
-      setIsRecording(true);
-      recognitionRef.current.start();
+      try {
+        console.log('Starting speech recognition...');
+        
+        // Stop any existing recognition first
+        if (isRecording) {
+          recognitionRef.current.stop();
+        }
+        
+        // Small delay to ensure clean start
+        setTimeout(() => {
+          try {
+            setIsRecording(true);
+            recognitionRef.current.start();
+            
+            // Auto-restart if it stops unexpectedly (for continuous recording)
+            const restartTimeout = setTimeout(() => {
+              if (isRecording && recognitionRef.current) {
+                console.log('Auto-restarting speech recognition for continuous capture...');
+                try {
+                  recognitionRef.current.stop();
+                  setTimeout(() => {
+                    if (isRecording) {
+                      recognitionRef.current.start();
+                    }
+                  }, 100);
+                } catch (restartError) {
+                  console.error('Error restarting speech recognition:', restartError);
+                }
+              }
+            }, 10000); // Restart every 10 seconds for continuous capture
+            
+            // Store timeout for cleanup
+            recognitionRef.current.restartTimeout = restartTimeout;
+            
+          } catch (startError) {
+            console.error('Error during recognition start:', startError);
+            setIsRecording(false);
+            alert('Could not start speech recognition: ' + startError.message);
+          }
+        }, 100);
+        
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        setIsRecording(false);
+        alert('Could not start speech recognition: ' + error.message);
+      }
+    } else {
+      console.log('Speech recognition not available');
+      alert('Speech recognition is not available in your browser. Please use Chrome, Edge, or Safari.');
     }
   };
 
   const stopRecording = () => {
     if (recognitionRef.current && isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
+      try {
+        console.log('Stopping speech recognition...');
+        
+        // Clear restart timeout
+        if (recognitionRef.current.restartTimeout) {
+          clearTimeout(recognitionRef.current.restartTimeout);
+          recognitionRef.current.restartTimeout = null;
+        }
+        
+        recognitionRef.current.stop();
+        setIsRecording(false);
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+        setIsRecording(false);
+      }
     }
   };
 
@@ -105,8 +339,60 @@ export default function Home() {
       if (cameraStream) {
         cameraStream.getTracks().forEach(track => track.stop());
       }
+      // Stop any ongoing speech synthesis
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, [cameraStream]);
+
+  // Question narration functions
+  const speakQuestion = (text) => {
+    if (!speechSynthSupported || !text) return;
+    
+    // Stop any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    setIsNarrating(true);
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9; // Slightly slower for clarity
+    utterance.pitch = 1;
+    utterance.volume = 0.8;
+    
+    utterance.onend = () => {
+      setIsNarrating(false);
+      console.log('Question narration completed');
+    };
+    
+    utterance.onerror = (event) => {
+      console.error('Speech synthesis error:', event.error);
+      setIsNarrating(false);
+    };
+    
+    utterance.onstart = () => {
+      console.log('Question narration started');
+    };
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopNarration = () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setIsNarrating(false);
+    }
+  };
+
+  // Auto-narrate new questions
+  useEffect(() => {
+    if (currentQuestion && speechSynthSupported && interviewStarted) {
+      // Small delay to ensure the question is displayed first
+      setTimeout(() => {
+        speakQuestion(currentQuestion);
+      }, 500);
+    }
+  }, [currentQuestion, speechSynthSupported, interviewStarted]);
 
   const startInterview = async () => {
     setIsLoading(true);
@@ -151,7 +437,7 @@ export default function Home() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('https://3296734498b4.ngrok-free.app/api/submit-answer', {
+      const response = await fetch('http://localhost:5000/api/submit-answer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -202,7 +488,7 @@ export default function Home() {
     disableCamera();
     
     try {
-      const response = await fetch('https://3296734498b4.ngrok-free.app/api/end-interview', {
+      const response = await fetch('http://localhost:5000/api/end-interview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -259,6 +545,31 @@ export default function Home() {
             
             {/* Camera Setup */}
             <div className={styles.setupOptions}>
+              {/* Browser Compatibility Info */}
+              <div className={styles.compatibilityInfo}>
+                <h4>Browser Compatibility Status</h4>
+                <div className={styles.compatibilityGrid}>
+                  <div className={styles.compatibilityItem}>
+                    <span>Browser: {browserInfo.browser}</span>
+                  </div>
+                  <div className={styles.compatibilityItem}>
+                    <span className={browserInfo.speech ? styles.supported : styles.notSupported}>
+                      🎤 Speech Input: {browserInfo.speech ? 'Supported' : 'Not Supported'}
+                    </span>
+                  </div>
+                  <div className={styles.compatibilityItem}>
+                    <span className={speechSynthSupported ? styles.supported : styles.notSupported}>
+                      🔊 Question Narration: {speechSynthSupported ? 'Supported' : 'Not Supported'}
+                    </span>
+                  </div>
+                  <div className={styles.compatibilityItem}>
+                    <span className={browserInfo.camera ? styles.supported : styles.notSupported}>
+                      📷 Camera: {browserInfo.camera ? 'Supported' : 'Not Supported'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
               <div className={styles.setupOption}>
                 <label className={styles.setupLabel}>
                   <input
@@ -266,8 +577,9 @@ export default function Home() {
                     checked={cameraEnabled}
                     onChange={(e) => e.target.checked ? enableCamera() : disableCamera()}
                     className={styles.setupCheckbox}
+                    disabled={!browserInfo.camera}
                   />
-                  Enable Camera (Optional)
+                  Enable Camera (Optional) {!browserInfo.camera && '- Not Available'}
                 </label>
                 <p className={styles.setupDescription}>
                   Turn on your camera for a more interactive interview experience
@@ -278,6 +590,30 @@ export default function Home() {
                 <div className={styles.setupOption}>
                   <p className={styles.setupInfo}>
                     🎤 Speech input is available! You can speak your answers during the interview.
+                  </p>
+                </div>
+              )}
+              
+              {speechSynthSupported && (
+                <div className={styles.setupOption}>
+                  <p className={styles.setupInfo}>
+                    🔊 Question narration is available! Questions will be read aloud automatically.
+                  </p>
+                </div>
+              )}
+              
+              {!speechSupported && (
+                <div className={styles.setupOption}>
+                  <p className={styles.setupWarning}>
+                    ⚠️ Speech input is not available in your browser. Please use Chrome, Edge, or Safari for speech features.
+                  </p>
+                </div>
+              )}
+              
+              {!speechSynthSupported && (
+                <div className={styles.setupOption}>
+                  <p className={styles.setupWarning}>
+                    ⚠️ Question narration is not available in your browser.
                   </p>
                 </div>
               )}
@@ -300,7 +636,11 @@ export default function Home() {
                   ref={videoRef}
                   autoPlay
                   muted
+                  playsInline
                   className={styles.cameraFeed}
+                  onLoadedMetadata={() => console.log('Video metadata loaded')}
+                  onCanPlay={() => console.log('Video can play')}
+                  onError={(e) => console.error('Video error:', e)}
                 />
                 <div className={styles.cameraControls}>
                   <button
@@ -310,6 +650,9 @@ export default function Home() {
                   >
                     📷 ❌
                   </button>
+                </div>
+                <div className={styles.cameraStatus}>
+                  Camera Active
                 </div>
               </div>
             )}
@@ -354,36 +697,77 @@ export default function Home() {
             {/* Question Display */}
             {!showResults && (
               <div className={styles.questionCard}>
-                <h3>❓ Question {roundNumber}</h3>
+                <div className={styles.questionHeader}>
+                  <h3>❓ Question {roundNumber}</h3>
+                  {speechSynthSupported && (
+                    <button
+                      className={`${styles.speakerButton} ${isNarrating ? styles.speaking : ''}`}
+                      onClick={isNarrating ? stopNarration : () => speakQuestion(currentQuestion)}
+                      title={isNarrating ? "Stop narration" : "Read question aloud"}
+                    >
+                      {isNarrating ? '🔊 Stop' : '🔊 Speak'}
+                    </button>
+                  )}
+                </div>
                 <p className={styles.question}>{currentQuestion}</p>
                 
                 <div className={styles.answerSection}>
                   <div className={styles.inputControls}>
-                    <textarea
-                      className={styles.answerInput}
-                      value={userAnswer}
-                      onChange={(e) => setUserAnswer(e.target.value)}
-                      placeholder="Type your answer here or use speech input..."
-                      rows={6}
-                      disabled={isLoading}
-                    />
+                    <div className={styles.textareaContainer}>
+                      <textarea
+                        className={styles.answerInput}
+                        value={userAnswer}
+                        onChange={(e) => setUserAnswer(e.target.value)}
+                        placeholder="Type your answer here or use speech input..."
+                        rows={6}
+                        disabled={isLoading}
+                      />
+                      {userAnswer && (
+                        <button
+                          className={styles.clearButton}
+                          onClick={() => setUserAnswer('')}
+                          title="Clear answer"
+                        >
+                          ❌
+                        </button>
+                      )}
+                    </div>
                     
                     {/* Speech Controls */}
-                    {speechSupported && (
-                      <div className={styles.speechControls}>
-                        <button
-                          className={`${styles.speechButton} ${isRecording ? styles.recording : ''}`}
-                          onClick={isRecording ? stopRecording : startRecording}
-                          disabled={isLoading}
-                          title={isRecording ? "Stop recording" : "Start speech input"}
-                        >
-                          {isRecording ? '🎤 Stop' : '🎤 Speak'}
-                        </button>
-                        {isRecording && (
-                          <span className={styles.recordingIndicator}>Recording...</span>
-                        )}
-                      </div>
-                    )}
+                    <div className={styles.speechControls}>
+                      {speechSupported ? (
+                        <>
+                          <button
+                            className={`${styles.speechButton} ${isRecording ? styles.recording : ''}`}
+                            onClick={isRecording ? stopRecording : startRecording}
+                            disabled={isLoading}
+                            title={isRecording ? "Stop recording" : "Start speech input"}
+                          >
+                            {isRecording ? '🎤 Stop' : '🎤 Speak'}
+                          </button>
+                          {isRecording && (
+                            <div className={styles.recordingStatus}>
+                              <span className={styles.recordingIndicator}>
+                                {isListening ? '🔴 Listening...' : '⏸️ Ready to listen'}
+                              </span>
+                              {interimTranscript && (
+                                <div className={styles.interimTranscript}>
+                                  <span>Preview: "{interimTranscript}"</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <div className={styles.speechTips}>
+                            <small>💡 Speak clearly and pause between sentences for better accuracy</small>
+                          </div>
+                        </>
+                      ) : (
+                        <div className={styles.speechNotAvailable}>
+                          <span>🎤 Speech recognition not available in this browser</span>
+                          <small>Try Chrome, Firefox, or Safari for speech input</small>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <div className={styles.inputHint}>

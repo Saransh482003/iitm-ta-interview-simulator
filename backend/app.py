@@ -24,8 +24,9 @@ def start_interview():
     with open("./initialising_questions.json", "r") as f:
         questions = json.load(f)
     
-    # Pick a random starting question
-    initial_question = questions[random.randint(0, len(questions)-1)]
+    # Pick a random starting question and format it properly
+    initial_question_text = questions[random.randint(0, len(questions)-1)]
+    initial_question = f"Question 1: {initial_question_text}"
     
     # Reset interview state
     interview_state = {
@@ -55,7 +56,13 @@ def submit_answer():
     
     # Get evaluation from the backend
     try:
-        result = interview_step(current_question, candidate_answer)
+        print(f"DEBUG: Processing answer for Round {interview_state['round_number']}")
+        print(f"DEBUG: Current question: {current_question}")
+        print(f"DEBUG: Candidate answer: {candidate_answer[:100]}...")
+        
+        result = interview_step(current_question, candidate_answer, interview_state["round_number"])
+        
+        print(f"DEBUG: Generated next question: {result['next_question']}")
         
         # Update interview state
         interview_state["round_number"] += 1
@@ -67,6 +74,8 @@ def submit_answer():
             "feedback": result["feedback"]
         })
         interview_state["current_question"] = result["next_question"]
+        
+        print(f"DEBUG: Updated to Round {interview_state['round_number']}")
         
         return jsonify({
             "status": "success",
