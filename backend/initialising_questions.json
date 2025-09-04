@@ -1,0 +1,22 @@
+[
+    "Let's begin the interview with a fundamental question: What do you understand by machine learning and are there any types of that?",
+    "Can you explain the difference between supervised, unsupervised, and reinforcement learning with examples?",
+    "What is the main difference between classification and regression problems in machine learning?",
+    "How would you explain overfitting and underfitting to someone who is new to machine learning?",
+    "What is the purpose of splitting data into training, validation, and test sets?",
+    "Can you describe what cross-validation is and why it's important in machine learning?",
+    "What do you understand by the bias-variance tradeoff in machine learning models?",
+    "How would you approach a machine learning problem if you were given a new dataset?",
+    "What is the difference between parametric and non-parametric machine learning algorithms?",
+    "Can you explain what feature engineering is and why it's important in the machine learning pipeline?",
+    "What are some common evaluation metrics for classification problems and when would you use each?",
+    "How do you handle missing data in a dataset and what are the different imputation techniques?",
+    "What is gradient descent and how does it work in training machine learning models?",
+    "Can you explain the concept of regularization and why it's used in machine learning?",
+    "What is the difference between bagging and boosting ensemble methods?",
+    "How would you detect and handle outliers in your dataset?",
+    "What is the curse of dimensionality and how can it affect machine learning models?",
+    "Can you explain what a confusion matrix is and how to interpret it?",
+    "What are some techniques for feature selection and when would you use them?",
+    "How do you choose the right algorithm for a given machine learning problem?"
+]
