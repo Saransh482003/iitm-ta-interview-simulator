@@ -437,7 +437,7 @@ export default function Home() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/submit-answer', {
+      const response = await fetch('https://cbbd10e84072.ngrok-free.app/api/submit-answer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -488,7 +488,7 @@ export default function Home() {
     disableCamera();
     
     try {
-      const response = await fetch('http://localhost:5000/api/end-interview', {
+      const response = await fetch('https://cbbd10e84072.ngrok-free.app/api/end-interview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

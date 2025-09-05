@@ -14,7 +14,7 @@ npm run dev
 
 **What happens:**
 - Next.js runs on `http://localhost:3000`
-- API calls are proxied to `http://localhost:5000` (Flask backend)
+- API calls are proxied to `https://cbbd10e84072.ngrok-free.app` (Flask backend)
 - No CORS issues since requests go through Next.js proxy
 - Full Next.js features available
 
@@ -34,7 +34,7 @@ npm run build:static
 
 The app automatically detects the environment:
 
-- **Development**: Uses Next.js proxy (`/api/*` → `http://localhost:5000/api/*`)
+- **Development**: Uses Next.js proxy (`/api/*` → `https://cbbd10e84072.ngrok-free.app/api/*`)
 - **Production**: Uses direct backend URL (ngrok or deployed backend)
 
 ## Environment Variables
@@ -60,7 +60,7 @@ NEXT_PUBLIC_BACKEND_URL=https://your-ngrok-url.ngrok-free.app
 
 3. **Access Application:**
    - Frontend: `http://localhost:3000`
-   - Backend: `http://localhost:5000`
+   - Backend: `https://cbbd10e84072.ngrok-free.app`
 
 ## Troubleshooting CORS
 

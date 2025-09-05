@@ -15,7 +15,7 @@ const getApiBaseUrl = () => {
   }
   
   // Server-side: use localhost
-  return 'http://localhost:5000';
+  return 'https://cbbd10e84072.ngrok-free.app';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
