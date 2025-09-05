@@ -10,7 +10,7 @@ const getApiBaseUrl = () => {
       return '';
     } else {
       // In production, use the direct backend URL (ngrok or deployed backend)
-      return process.env.NEXT_PUBLIC_BACKEND_URL || 'https://3296734498b4.ngrok-free.app';
+      return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5000';
     }
   }
   
