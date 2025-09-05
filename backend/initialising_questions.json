@@ -1,22 +1,41 @@
 [
-    "Let's begin the interview with a fundamental question: What do you understand by machine learning and are there any types of that?",
-    "Can you explain the difference between supervised, unsupervised, and reinforcement learning with examples?",
-    "What is the main difference between classification and regression problems in machine learning?",
-    "How would you explain overfitting and underfitting to someone who is new to machine learning?",
-    "What is the purpose of splitting data into training, validation, and test sets?",
-    "Can you describe what cross-validation is and why it's important in machine learning?",
-    "What do you understand by the bias-variance tradeoff in machine learning models?",
-    "How would you approach a machine learning problem if you were given a new dataset?",
-    "What is the difference between parametric and non-parametric machine learning algorithms?",
-    "Can you explain what feature engineering is and why it's important in the machine learning pipeline?",
-    "What are some common evaluation metrics for classification problems and when would you use each?",
-    "How do you handle missing data in a dataset and what are the different imputation techniques?",
-    "What is gradient descent and how does it work in training machine learning models?",
-    "Can you explain the concept of regularization and why it's used in machine learning?",
-    "What is the difference between bagging and boosting ensemble methods?",
-    "How would you detect and handle outliers in your dataset?",
-    "What is the curse of dimensionality and how can it affect machine learning models?",
-    "Can you explain what a confusion matrix is and how to interpret it?",
-    "What are some techniques for feature selection and when would you use them?",
-    "How do you choose the right algorithm for a given machine learning problem?"
+    "Let's start with the fundamentals from your Machine Learning Practice course: Can you walk me through the complete end-to-end machine learning pipeline you've learned? How do you approach building a baseline model and what evaluation metrics would you use?",
+
+    "You've worked with wine quality prediction using linear regression in your course. Can you explain how you would diagnose if your model is suffering from overfitting or underfitting? What specific techniques would you use to address each scenario?",
+    
+    "In your MLP course, you learned about different feature selection methods. Can you compare filter-based methods like univariate selection with wrapper-based methods like Recursive Feature Elimination (RFE)? When would you choose one over the other?",
+    
+    "Let's discuss SGDRegressor which you've studied extensively. Why is feature scaling so critical when using SGD? Can you explain how different learning rate schedules (constant, inverse scaling, adaptive) affect model convergence?",
+    
+    "Your course covered regularization techniques in detail. Can you explain the difference between Ridge (L2) and Lasso (L1) regularization? How would you implement elastic net in sklearn and what's the significance of the l1_ratio parameter?",
+    
+    "You've learned about multiclass classification setups. Can you explain the difference between One-vs-Rest (OVR) and One-vs-One (OVO) strategies? In what scenarios would you prefer using meta-estimators over sklearn's built-in multiclass support?",
+    
+    "From your study of Naive Bayes classifiers, can you explain when you would choose GaussianNB vs MultinomialNB vs BernoulliNB? What assumptions does each make about the feature distributions?",
+    
+    "Large-scale machine learning was covered in your course using partial_fit methods. Can you explain the concept of incremental learning and why SGDClassifier is particularly well-suited for large datasets? How does this differ from traditional batch learning?",
+    
+    "Let's talk about Support Vector Machines from your coursework. Can you explain the role of the C parameter in SVC and how it differs from the nu parameter in NuSVC? When would you choose LinearSVC over SVC?",
+    
+    "Your course covered decision trees extensively. Can you explain the difference between pre-pruning and post-pruning techniques? What parameters like min_samples_split and max_depth help control overfitting in sklearn's DecisionTreeClassifier?",
+    
+    "From your study of neural networks, can you explain how to configure MLPClassifier for different architectures? How do the hidden_layer_sizes parameter and different solvers (lbfgs, sgd, adam) affect model performance?",
+    
+    "You've learned about ensemble methods including voting, bagging, and Random Forest. Can you explain how Random Forest differs from simple bagging? What role do the max_features and bootstrap parameters play in Random Forest performance?",
+    
+    "Let's discuss cross-validation strategies from your course. Can you explain when you would use ShuffleSplit vs KFold cross-validation? How do you use validation curves to tune hyperparameters effectively?",
+    
+    "Your course covered text preprocessing with CountVectorizer and HashingVectorizer. Can you explain why HashingVectorizer is preferred for large-scale text processing and incremental learning scenarios?",
+    
+    "From your hands-on experience with sklearn pipelines, can you explain how to combine preprocessing steps with model training? How would you implement a pipeline that includes feature scaling, polynomial features, and regularized regression?",
+    
+    "You've studied model diagnostics and evaluation extensively. How do you interpret learning curves to diagnose bias and variance issues? What's the difference between using mean squared error vs mean absolute error for regression problems?",
+    
+    "Let's discuss the practical aspects of hyperparameter tuning you've learned. Can you compare GridSearchCV vs RandomizedSearchCV? In what scenarios would you prefer one over the other?",
+    
+    "Your course emphasized the importance of understanding when models are underfitting vs overfitting. Using a concrete example like the wine quality dataset, how would you systematically diagnose and fix these issues?",
+    
+    "From your study of multi-output and multilabel classification, can you explain the difference between MultiOutputClassifier and ClassifierChain? How do you handle scenarios where samples can belong to multiple classes?",
+    
+    "Finally, let's discuss the practical considerations you've learned for real-world ML projects. How do you handle class imbalance issues? What techniques from your course would you use for feature engineering and selection in a production environment?"
 ]

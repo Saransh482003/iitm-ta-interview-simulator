@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import json
 import random
-from retrieve_relevancy import interview_step
+from retrieve_relevancy import interview_step, detect_dont_know_response
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -93,8 +93,14 @@ def submit_answer():
         print(f"DEBUG: Current question: {current_question}")
         print(f"DEBUG: Candidate answer: {candidate_answer[:100]}...")
         
-        # Check if we need to shift topic (after 3 questions in current topic)
-        should_shift_topic = interview_state["questions_in_topic"] >= 3
+        # Check if this is an "I don't know" response
+        is_dont_know = detect_dont_know_response(candidate_answer)
+        
+        # Check if we need to shift topic (after 3 questions in current topic OR "I don't know" response)
+        should_shift_topic = interview_state["questions_in_topic"] >= 3 or is_dont_know
+        
+        if is_dont_know:
+            print(f"DEBUG: Detected 'I don't know' response, triggering topic shift")
         
         result = interview_step(current_question, candidate_answer, interview_state["round_number"], should_shift_topic)
         
@@ -107,7 +113,8 @@ def submit_answer():
             "question": current_question,
             "answer": candidate_answer,
             "score": result["score"],
-            "feedback": result["feedback"]
+            "feedback": result["feedback"],
+            "was_dont_know": is_dont_know  # Track if this was a "don't know" response
         })
         interview_state["current_question"] = result["next_question"]
         
@@ -115,7 +122,10 @@ def submit_answer():
         if should_shift_topic:
             interview_state["current_topic_start"] = interview_state["round_number"]
             interview_state["questions_in_topic"] = 1  # Reset counter for new topic
-            print(f"DEBUG: Shifted to new topic at round {interview_state['round_number']}")
+            if is_dont_know:
+                print(f"DEBUG: Shifted to new topic due to 'I don't know' response at round {interview_state['round_number']}")
+            else:
+                print(f"DEBUG: Shifted to new topic (regular rotation) at round {interview_state['round_number']}")
         else:
             interview_state["questions_in_topic"] += 1
         
@@ -128,7 +138,9 @@ def submit_answer():
             "next_question": result["next_question"],
             "round_number": interview_state["round_number"],
             "total_score": interview_state["total_score"],
-            "average_score": round(interview_state["total_score"] / (interview_state["round_number"] - 1), 2)
+            "average_score": round(interview_state["total_score"] / (interview_state["round_number"] - 1), 2),
+            "topic_shifted": should_shift_topic,  # Let frontend know if topic was shifted
+            "shift_reason": "dont_know" if is_dont_know else "rotation" if should_shift_topic else None
         })
         
     except Exception as e:

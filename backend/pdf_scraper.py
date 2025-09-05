@@ -26,13 +26,13 @@ def extract_text_by_page(folder_path: str, pdf_file: str):
         all_text += cleaned_text + "\n"
         print(f"Extracted page {i + 1} from {pdf_file}")
     doc.close()
-    with open(f"./extracted_pdfs/{week}_extracted.txt", "w", encoding="utf-16") as f:
+    with open(f"./extracted_pdfs/{week}_slides.txt", "w", encoding="utf-16") as f:
         f.write(all_text)
     return extraction
 
-for folders in os.listdir("./Transcripts"):
-    files = os.listdir(f"./Transcripts/{folders}")
+for folders in os.listdir("./Slides"):
+    files = os.listdir(f"./Slides/{folders}")
     pdf_files = [f for f in files if f.endswith(".pdf")]
 
     for pdf_file in pdf_files:
-        extract_text_by_page(f"./Transcripts/{folders}", pdf_file)
+        extract_text_by_page(f"./Slides/{folders}", pdf_file)
