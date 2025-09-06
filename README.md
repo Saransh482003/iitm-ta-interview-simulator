@@ -32,7 +32,7 @@ A full-stack web application for conducting interactive machine learning intervi
    ```powershell
    python app.py
    ```
-   The backend will run on `https://cbbd10e84072.ngrok-free.app`
+   The backend will run on `https://9c13f2bf3856.ngrok-free.app`
 
 ### Frontend Setup
 

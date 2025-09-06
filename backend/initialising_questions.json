@@ -37,5 +37,63 @@
     
     "From your study of multi-output and multilabel classification, can you explain the difference between MultiOutputClassifier and ClassifierChain? How do you handle scenarios where samples can belong to multiple classes?",
     
-    "Finally, let's discuss the practical considerations you've learned for real-world ML projects. How do you handle class imbalance issues? What techniques from your course would you use for feature engineering and selection in a production environment?"
+    "Finally, let's discuss the practical considerations you've learned for real-world ML projects. How do you handle class imbalance issues? What techniques from your course would you use for feature engineering and selection in a production environment?",
+    
+    "Let's dive deeper into the SGD optimization you've studied. Can you explain the warm_start parameter in SGDRegressor and when you would use it? How does early stopping work with the validation_fraction parameter?",
+    
+    "Your course covered extensive hyperparameter tuning techniques. Can you walk me through how you would use validation curves to select the optimal learning rate for SGDRegressor? What's the difference between learning_rate='constant', 'invscaling', and 'adaptive'?",
+    
+    "From your hands-on experience with the California housing dataset, can you explain why feature scaling is crucial for SGD-based algorithms? How would you implement this in a sklearn pipeline?",
+    
+    "Let's discuss the ensemble methods you've learned in detail. Can you explain how voting classifiers work with both hard and soft voting? When would you prefer VotingClassifier over individual base estimators?",
+    
+    "Your course emphasized understanding model complexity. Can you explain how the max_depth, min_samples_split, and min_samples_leaf parameters in decision trees help control the bias-variance tradeoff?",
+    
+    "From your study of Random Forest, can you explain the role of bootstrap sampling and random feature selection? How do the n_estimators and max_features parameters affect model performance and computational cost?",
+    
+    "Let's talk about the practical aspects of large-scale learning you've studied. Can you explain why HashingVectorizer is memory-efficient compared to CountVectorizer? How would you implement incremental learning for text classification?",
+    
+    "Your course covered different kernel types in SVM extensively. Can you explain when you would choose 'linear', 'rbf', 'poly', or 'sigmoid' kernels? How does the gamma parameter affect the decision boundary in RBF kernels?",
+    
+    "From your understanding of neural networks in sklearn, can you explain how the choice of activation functions ('relu', 'logistic', 'tanh', 'identity') affects model performance? When would you use different solvers like 'lbfgs' vs 'adam'?",
+    
+    "Let's discuss model evaluation strategies from your course. Can you explain the difference between using ShuffleSplit and KFold cross-validation? In what scenarios would you prefer one over the other?",
+    
+    "Your course covered cost complexity pruning in decision trees. Can you explain how the ccp_alpha parameter works and how it helps prevent overfitting? How does this relate to post-pruning techniques?",
+    
+    "From your study of Naive Bayes variants, can you explain why MultinomialNB is preferred for text classification while GaussianNB is used for continuous features? What's the role of smoothing parameters?",
+    
+    "Let's talk about handling imbalanced datasets, which was covered in your course. How would you use ComplementNB instead of MultinomialNB for imbalanced text classification? What other techniques can address class imbalance?",
+    
+    "Your course emphasized understanding when algorithms fail. Can you explain scenarios where linear models like Ridge regression would perform poorly? How would you diagnose and address these issues?",
+    
+    "From your practical experience with sklearn pipelines, can you explain how to combine multiple preprocessing steps like polynomial features, feature selection, and standardization? How do you ensure proper cross-validation in such pipelines?",
+    
+    "Let's discuss the computational aspects you've learned. Can you explain why SGD-based algorithms scale better to large datasets compared to algorithms like SVM with RBF kernels? What are the memory vs accuracy tradeoffs?",
+    
+    "Your course covered different loss functions extensively. Can you explain when you would use 'hinge' vs 'squared_hinge' loss in LinearSVC? How do these choices affect the optimization landscape?",
+    
+    "From your understanding of model diagnostics, can you explain how to interpret learning curves when you see high training accuracy but poor validation accuracy? What specific techniques would you apply to fix this?",
+    
+    "Let's talk about the feature importance techniques you've learned. Can you compare feature importance from Random Forest with coefficients from Ridge regression? When might these give different rankings?",
+    
+    "Your course covered sequential feature selection methods. Can you explain the difference between forward and backward selection? How do you decide which direction to use based on your target number of features?",
+    
+    "From your study of regularization, can you explain how the alpha parameter in Ridge and Lasso affects model complexity? How would you use RidgeCV and LassoCV to automatically select optimal regularization strength?",
+    
+    "Let's discuss the practical implementation details you've learned. Can you explain how to handle mixed data types (numerical and categorical) in sklearn pipelines? What preprocessing steps are needed for each type?",
+    
+    "Your course emphasized understanding algorithm limitations. Can you explain why decision trees are prone to overfitting with high-dimensional data? What preprocessing steps like PCA or feature selection help address this?",
+    
+    "From your hands-on experience, can you explain how to implement one-vs-rest and one-vs-one strategies manually using binary classifiers? When would you prefer these meta-estimators over sklearn's built-in multiclass support?",
+    
+    "Let's talk about the evaluation metrics you've mastered. For the wine quality regression problem, why might mean absolute error be preferred over mean squared error in some cases? How do outliers affect these metrics differently?",
+    
+    "Your course covered advanced ensemble techniques. Can you explain how gradient boosting differs from bagging methods like Random Forest? What are the key hyperparameters that control overfitting in boosting?",
+    
+    "From your understanding of neural network training, can you explain the role of batch_size, learning_rate_init, and momentum parameters in MLPClassifier? How do these affect convergence and generalization?",
+    
+    "Let's discuss the curse of dimensionality that was covered in your course. How does this affect different algorithms like k-NN, SVM, and decision trees differently? What dimensionality reduction techniques help mitigate these issues?",
+    
+    "Your course emphasized practical debugging skills. If you encounter a scenario where your model has identical training and validation errors that are both high, what would this indicate and how would you address it?"
 ]
