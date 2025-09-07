@@ -10,12 +10,12 @@ const getApiBaseUrl = () => {
       return '';
     } else {
       // In production, use the direct backend URL (ngrok or deployed backend)
-      return process.env.NEXT_PUBLIC_BACKEND_URL || 'https://9c13f2bf3856.ngrok-free.app';
+      return process.env.NEXT_PUBLIC_BACKEND_URL || 'https://16b5aaa3e134.ngrok-free.app';
     }
   }
   
   // Server-side: use localhost
-  return 'https://9c13f2bf3856.ngrok-free.app';
+  return 'https://16b5aaa3e134.ngrok-free.app';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

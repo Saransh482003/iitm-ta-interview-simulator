@@ -397,7 +397,7 @@ export default function Home() {
   const startInterview = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('https://9c13f2bf3856.ngrok-free.app/api/start-interview', {
+      const response = await fetch('https://16b5aaa3e134.ngrok-free.app/api/start-interview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -437,7 +437,7 @@ export default function Home() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('https://9c13f2bf3856.ngrok-free.app/api/submit-answer', {
+      const response = await fetch('https://16b5aaa3e134.ngrok-free.app/api/submit-answer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -488,7 +488,7 @@ export default function Home() {
     disableCamera();
     
     try {
-      const response = await fetch('https://9c13f2bf3856.ngrok-free.app/api/end-interview', {
+      const response = await fetch('https://16b5aaa3e134.ngrok-free.app/api/end-interview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
