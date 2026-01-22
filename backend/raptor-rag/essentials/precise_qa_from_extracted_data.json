@@ -1,0 +1,85 @@
+{
+  "created_at": "2026-01-21",
+  "items": [
+    {
+      "id": 1,
+      "question": "In sklearn.svm.SVC, what is the default value of C, and how does changing C affect regularization strength?",
+      "answer": "Default C is 1.0. Regularization strength is inversely proportional to C (larger C => weaker regularization; smaller C => stronger regularization). C is strictly positive and the penalty used is squared L2.",
+      "sources": [
+        "SVM in scikit-learn_extracted.json"
+      ]
+    },
+    {
+      "id": 2,
+      "question": "In sklearn.svm.SVC, what kernel options are mentioned (including the default), and which extra parameter must be set when kernel=\"poly\"?",
+      "answer": "Mentioned kernels: linear, polynomial (poly), rbf (radial basis function), sigmoid, and precomputed kernels; the default kernel is rbf. If kernel='poly', you must set the polynomial degree via the 'degree' parameter.",
+      "sources": [
+        "SVM in scikit-learn_extracted.json"
+      ]
+    },
+    {
+      "id": 3,
+      "question": "For RBF/poly/sigmoid kernels in SVC, what does gamma=\"scale\" mean numerically (give the exact formula stated), and what is the default gamma setting?",
+      "answer": "gamma='scale' means gamma = 1 / (number_of_features * variance_of_X). The default gamma setting is 'scale'.",
+      "sources": [
+        "SVM in scikit-learn_extracted.json"
+      ]
+    },
+    {
+      "id": 4,
+      "question": "After fitting an SVC, which three attributes expose (1) the support vectors, (2) their indices, and (3) the number of support vectors per class?",
+      "answer": "(1) support_vectors_ gives the support vectors, (2) support_ gives the indices of the support vectors, and (3) n_support_ gives the number of support vectors for each class.",
+      "sources": [
+        "SVM in scikit-learn_extracted.json"
+      ]
+    },
+    {
+      "id": 5,
+      "question": "In sklearn.svm.NuSVC, what is nu supposed to control, what range must it lie in, and what is its default value?",
+      "answer": "nu controls the number of support vectors and margin errors: it is an upper bound on the fraction of margin errors and a lower bound on the fraction of support vectors. nu must be between 0 and 1. The default nu is 0.5.",
+      "sources": [
+        "SVM in scikit-learn_extracted.json"
+      ]
+    },
+    {
+      "id": 6,
+      "question": "In sklearn.svm.LinearSVC, which penalties are supported, what does penalty=\"l1\" do to the coefficient vector, and what is the default penalty?",
+      "answer": "Supported penalties: l1 and l2. Using penalty='l1' leads to sparse coefficient vectors. The default penalty is l2.",
+      "sources": [
+        "SVM in scikit-learn_extracted.json"
+      ]
+    },
+    {
+      "id": 7,
+      "question": "In LinearSVC, which loss options are mentioned, what is the default loss, and which penalty–loss combination is explicitly not supported?",
+      "answer": "Mentioned losses: 'hinge' and 'squared_hinge'. The default loss is 'squared_hinge'. The combination of penalty='l1' with loss='hinge' is explicitly not supported in LinearSVC.",
+      "sources": [
+        "SVM in scikit-learn_extracted.json"
+      ]
+    },
+    {
+      "id": 8,
+      "question": "In scikit-learn’s Ridge / SGDRegressor examples, what parameter name is used for the regularization rate, and what example value is given for it in the ridge example?",
+      "answer": "The regularization-rate parameter name used is 'alpha' (referred to as 'a' in the transcript). The example ridge value given is alpha = 0.0001.",
+      "sources": [
+        "Regularization_extracted.json"
+      ]
+    },
+    {
+      "id": 9,
+      "question": "In elastic-net regularization using SGDRegressor(penalty=\"elasticnet\"), if l1_ratio=0.3, what is the implied l2_ratio, and what do l1_ratio=1 vs l1_ratio=0 correspond to?",
+      "answer": "If l1_ratio=0.3, then l2_ratio = 1 - l1_ratio = 0.7. With penalty='elasticnet', l1_ratio=1 corresponds to lasso, and l1_ratio=0 corresponds to ridge.",
+      "sources": [
+        "Regularization_extracted.json"
+      ]
+    },
+    {
+      "id": 10,
+      "question": "For sklearn.tree.DecisionTreeClassifier/Regressor, what are the defaults for max_depth, min_samples_split, and min_samples_leaf, and what happens when max_depth=None according to the text?",
+      "answer": "Defaults: max_depth=None, min_samples_split=2, min_samples_leaf=1. When max_depth=None, the tree expands until all leaves are pure or contain fewer than min_samples_split samples.",
+      "sources": [
+        "Decision Trees_extracted.json"
+      ]
+    }
+  ]
+}

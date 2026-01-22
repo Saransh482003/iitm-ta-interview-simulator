@@ -1,0 +1,365 @@
+import json
+from langchain_ollama import OllamaEmbeddings
+from langchain_chroma import Chroma
+from langchain_core.documents import Document
+import warnings
+warnings.filterwarnings("ignore")
+from dotenv import load_dotenv
+import os
+import time
+from typing import List, Dict, Optional
+from mechanics.refine_query import refine_query
+from mechanics.ollama_usage_tracker import usage_tracker
+
+
+class TrackedOllamaEmbeddings(OllamaEmbeddings):
+    """Wrap Ollama embeddings to capture token/time usage."""
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:  # type: ignore[override]
+        if not self._client:
+            msg = (
+                "Ollama client is not initialized. "
+                "Please ensure Ollama is running and the model is loaded."
+            )
+            raise ValueError(msg)
+
+        start = time.perf_counter()
+        response = self._client.embed(
+            self.model,
+            texts,
+            options=self._default_params,
+            keep_alive=self.keep_alive,
+        )
+        wall_time = time.perf_counter() - start
+        usage_tracker.record_embedding(
+            prompt_tokens=int(response.get("prompt_eval_count", 0) or 0),
+            eval_tokens=int(response.get("eval_count", 0) or 0),
+            prompt_duration_ns=int(response.get("prompt_eval_duration", 0) or 0),
+            eval_duration_ns=int(response.get("eval_duration", 0) or 0),
+            total_duration_ns=int(response.get("total_duration", 0) or 0),
+            wall_time_s=wall_time,
+        )
+        return response["embeddings"]
+
+load_dotenv()
+
+# Load vectorstore
+embeddings = TrackedOllamaEmbeddings(
+    model=os.getenv("OLLAMA_EMBEDDINGS_MODEL"),
+    base_url="http://127.0.0.1:11434"
+)
+print(os.getenv("CHROMA_PERSIST_PATH", "./chroma_store"))
+vectorstore = Chroma(
+    persist_directory=os.getenv("CHROMA_PERSIST_PATH", "./chroma_store"),
+    embedding_function=embeddings
+)
+# Load original summary tree (for hierarchy reference if needed)
+with open(os.getenv("HIERARCHY_STORE_PATH"), "r", encoding="utf-16") as f:
+    summary_tree = json.load(f)
+
+MAX_RETRIEVED_CHUNKS = int(os.getenv("MAX_RETRIEVED_CHUNKS", "5"))
+
+
+# ========== HELPER FUNCTIONS ==========
+
+def _add_unique(results, collector, seen_ids):
+    """Helper to append only unseen documents by chunk id."""
+    for doc in results or []:
+        doc_id = doc.metadata.get("id") if hasattr(doc, "metadata") else None
+        if not doc_id:
+            doc_id = f"pc:{hash(getattr(doc, 'page_content', ''))}"
+        if doc_id in seen_ids:
+            continue
+        seen_ids.add(doc_id)
+        collector.append(doc)
+
+
+def _vector_search_with_scores(query: str, k: int, *, filter: Optional[dict] = None) -> List[Document]:
+    """Run vector search and annotate documents with similarity scores."""
+    if k <= 0:
+        return []
+
+    try:
+        raw_results = vectorstore.similarity_search_with_relevance_scores(query, k=k, filter=filter)
+    except Exception:
+        # Fallback to basic search without explicit scores
+        fallback_docs = vectorstore.similarity_search(query, k=k, filter=filter)
+        raw_results = [(doc, None) for doc in fallback_docs]
+
+    docs = []
+    total = max(len(raw_results), 1)
+    for rank, (doc, score) in enumerate(raw_results):
+        metadata = dict(doc.metadata) if doc.metadata else {}
+        if score is None:
+            # Derive a monotonic proxy score to preserve ordering
+            score = 1.0 - (rank / total)
+        metadata["similarity_score"] = float(score)
+        doc.metadata = metadata
+        docs.append(doc)
+    return docs
+
+
+def _keyword_rescue_root_search(query_tokens: List[str], summary_tree: Dict) -> List[Document]:
+    """
+    Scans root-level summaries for exact keyword matches.
+    This acts as a safety net for rare proper nouns (e.g. 'GymLink') 
+    that embeddings might miss.
+    """
+    rescued_docs = []
+    if not query_tokens:
+        return rescued_docs
+
+    # 1. Filter tokens to avoid noise
+    # We must ignore common stopwords even if they passed through refinement fallback
+    stopwords = {
+        'what','which','who','whom','whose','when','where','why','how',
+        'is','am','are','was','were','be','being','been','do','does','did','done',
+        'the','a','an','of','to','in','on','at','for','from','by','with','as','into','about','via','and','or',
+        'this','that','these','those','it','its','they','their','them','we','our','you','your','i','me','my',
+        'please','kindly','can','could','would','should','will','shall','may','might'
+    }
+    # Also filter very short tokens (1-2 chars) unless they are specific codes
+    effective_tokens = [t for t in query_tokens if t.lower() not in stopwords and len(t) > 2]
+    
+    if not effective_tokens:
+        return rescued_docs
+        
+    print(f"   🚑 Rescue scanning for: {effective_tokens}")
+
+    # Flatten root nodes for scanning
+    # We only scan the highest level available for each file
+    for file_id, file_data in summary_tree.items():
+        levels = file_data.get("levels", {})
+        if not levels:
+            continue
+        
+        # Find max level (root)
+        # Level keys are like "level_0", "level_1". We want the highest number.
+        try:
+            max_level_key = max(levels.keys(), key=lambda x: int(x.split("_")[1]))
+            root_chunks = levels[max_level_key]
+        except ValueError:
+            continue
+
+        for chunk in root_chunks:
+            text = chunk.get("text", "").lower()
+            # Check if ANY significant rare token appears.
+            # We assume query_tokens are already filtered/refined keywords.
+            
+            matches = sum(1 for token in effective_tokens if token in text)
+            
+            if matches > 0:
+                # Create a Document object to match vectorstore output
+                rescue_score = matches / max(len(effective_tokens), 1)
+                doc = Document(
+                    page_content=chunk.get("text", ""),
+                    metadata={
+                        "id": chunk.get("id"),
+                        "source": file_data.get("source", ""),
+                        "level": max_level_key,
+                        "chunk_source": json.dumps(chunk.get("source", [])), # Maintain lineage
+                        "similarity_score": rescue_score,
+                        "keyword_rescue_matches": matches
+                    }
+                )
+                rescued_docs.append(doc)
+    
+    return rescued_docs
+
+
+def _hierarchical_traversal(
+    query: str,
+    summary_tree: dict,
+    top_k_root: int,
+    top_k_children: int,
+    refined_tokens: List[str] = None,
+    enable_keyword_rescue: bool = True
+) -> List[Document]:
+    """Perform hierarchical RAPTOR tree traversal."""
+    # Collect root (max-level) chunk IDs
+    root_ids = []
+    max_levels = set()
+    for file_id, file_data in summary_tree.items():
+        levels = list(file_data["levels"].keys())
+        if not levels:
+            continue
+        max_level_key = max(levels, key=lambda x: int(x.split("_")[1]))
+        max_levels.add(max_level_key)
+        for chunk in file_data["levels"][max_level_key]:
+            root_ids.append(chunk["id"])
+
+    # 1. Vector Search for Roots
+    root_results = []
+    if root_ids:
+        root_results = _vector_search_with_scores(
+            query,
+            k=min(top_k_root, len(root_ids)),
+            filter={"id": {"$in": root_ids}}
+        )
+
+    # Fallback: filter by level if ID filter returns nothing
+    if not root_results and max_levels:
+        root_results = _vector_search_with_scores(
+            query,
+            k=top_k_root,
+            filter={"level": {"$in": list(max_levels)}}
+        )
+
+    # 2. Keyword Rescue for Roots (Safety Net)
+    if enable_keyword_rescue and refined_tokens:
+        rescued_docs = _keyword_rescue_root_search(refined_tokens, summary_tree)
+        if rescued_docs:
+            print(f"🚑 Keyword Rescue: Found {len(rescued_docs)} documents matching rare tokens.")
+            # Merge rescued docs into root_results, avoiding duplicates
+            existing_ids = {d.metadata.get("id") for d in root_results}
+            for d in rescued_docs:
+                if d.metadata.get("id") not in existing_ids:
+                    root_results.append(d)
+
+    # Store all retrieved documents from all levels
+    all_results = []
+    seen_ids = set()
+    _add_unique(root_results, all_results, seen_ids)
+
+    def descend(children_ids):
+        if not children_ids:
+            return
+        unique_children_ids = list(dict.fromkeys(children_ids))
+        k = min(top_k_children, len(unique_children_ids))
+        
+        child_results = _vector_search_with_scores(
+            query,
+            k=k,
+            filter={"id": {"$in": unique_children_ids}}
+        )
+        _add_unique(child_results, all_results, seen_ids)
+
+        next_children_ids = []
+        for doc in child_results:
+            src_raw = doc.metadata.get("chunk_source")
+            try:
+                src_list = json.loads(src_raw) if isinstance(src_raw, str) else (src_raw or [])
+            except Exception:
+                src_list = []
+            if isinstance(src_list, list):
+                next_children_ids.extend(src_list)
+
+        if not next_children_ids:
+            if k < len(unique_children_ids):
+                leaf_all = _vector_search_with_scores(
+                    query,
+                    k=len(unique_children_ids),
+                    filter={"id": {"$in": unique_children_ids}}
+                )
+                _add_unique(leaf_all, all_results, seen_ids)
+            return
+
+        descend(list(dict.fromkeys(next_children_ids)))
+
+    children = []
+    for doc in root_results:
+        src_raw = doc.metadata.get("chunk_source")
+        try:
+            src_list = json.loads(src_raw) if isinstance(src_raw, str) else (src_raw or [])
+        except Exception:
+            src_list = []
+        if isinstance(src_list, list):
+            children.extend(src_list)
+    
+    descend(list(dict.fromkeys(children)))
+    return all_results
+
+
+# ========== MAIN RETRIEVAL FUNCTION ==========
+
+def raptor_retrieve(query: str, summary_tree: dict, top_k_root: int = 1, top_k_children: int = 2,
+                   use_query_refinement: bool = False, enable_keyword_rescue: bool = True) -> dict:
+    """
+    Unified RAPTOR retrieval with optional query refinement and web search.
+    
+    Args:
+        query: User's search query
+        summary_tree: RAPTOR summary tree
+        top_k_root: Top-k for root level retrieval
+        top_k_children: Top-k for children level retrieval
+        use_query_refinement: Enable query refinement for better embeddings (default: True)
+        enable_keyword_rescue: Toggle keyword-based rescue for rare tokens
+    
+    Returns:
+        Dict containing:
+            - 'raptor_results': List of RAPTOR documents
+            - 'all_contexts': Combined context for LLM (dicts with content/metadata/source_type)
+            - 'sources': Source attribution info
+            - 'query_info': Original and refined query details
+            - 'enable_keyword_rescue': Whether keyword rescue contributed
+    """
+    print(f"\n{'='*80}")
+    print(f"🔍 RAPTOR RETRIEVAL: {query}")
+    print(f"{'='*80}\n")
+    
+    # Step 1: Query refinement (optional)
+    original_query = query
+    retrieval_query = query.lower()
+    query_info = {'original': original_query, 'refined': None, 'used_refinement': use_query_refinement}
+    refined_tokens = []
+
+    if use_query_refinement:
+        refined = refine_query(query, enable_expansion=False)
+        retrieval_query = refined['reduced']
+        refined_tokens = refined['tokens'] # Get tokens for keyword rescue
+        query_info['refined'] = retrieval_query
+        query_info['tokens_kept'] = refined['tokens']
+        query_info['tokens_dropped'] = refined['dropped']
+        print(f"🔧 Query refinement: '{original_query}' → '{retrieval_query}'\n")
+    else:
+        # If refinement is off, we can still try to use simple tokens for rescue
+        # But better to rely on the user enabling refinement if they want this feature.
+        # Or we can just split the query.
+        refined_tokens = query.lower().split()
+    
+    # Step 2: RAPTOR hierarchical retrieval
+    print("📚 Retrieving from RAPTOR tree...")
+    # Pass refined_tokens to traversal for keyword rescue
+    raptor_results = _hierarchical_traversal(
+        retrieval_query,
+        summary_tree,
+        top_k_root,
+        top_k_children,
+        refined_tokens=refined_tokens,
+        enable_keyword_rescue=enable_keyword_rescue
+    )
+    print(f"✓ Found {len(raptor_results)} RAPTOR documents\n")
+    
+    # Step 3: Combine contexts
+    sources = {'raptor': len(raptor_results), 'web': 0}
+
+    raptor_contexts = []
+    for doc in raptor_results:
+        similarity_score = float(doc.metadata.get('similarity_score', 0.0))
+        raptor_contexts.append({
+            'content': doc.page_content,
+            'metadata': doc.metadata,
+            'source_type': 'raptor',
+            'source': doc.metadata.get('source', 'unknown'),
+            'score': similarity_score
+        })
+
+    raptor_contexts.sort(key=lambda ctx: ctx.get('score', 0.0), reverse=True)
+    all_contexts = raptor_contexts
+    limited_contexts = all_contexts[:MAX_RETRIEVED_CHUNKS]
+
+    print(f"📊 RETRIEVAL SUMMARY:")
+    print(f"   RAPTOR: {sources['raptor']} documents")
+    print(f"   Total Combined: {len(all_contexts)} contexts")
+    if len(all_contexts) > MAX_RETRIEVED_CHUNKS:
+        print(f"   ➜ Truncated to top {MAX_RETRIEVED_CHUNKS} contexts after ranking")
+    print(f"{'='*80}\n")
+    
+    return {
+        'raptor_results': raptor_results,
+        'all_contexts': limited_contexts,
+        'sources': sources,
+        'query_info': query_info,
+        'enable_keyword_rescue': enable_keyword_rescue
+    }
+
